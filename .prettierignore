@@ -1,0 +1,12 @@
+node_modules/
+pnpm-lock.yaml
+
+lib/
+core/lib/
+patched-temp/lib/
+patched/lib/
+patches/
+core-index.json
+patches-index.json
+
+dist/

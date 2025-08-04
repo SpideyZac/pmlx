@@ -1,0 +1,90 @@
+{
+    "name": "pmlx",
+    "version": "1.0.0",
+    "description": "A new mod loader for the game PolyTrack done right.",
+    "main": "./patched/electron/main.cjs",
+    "type": "module",
+    "scripts": {
+        "format": "prettier --write . --ignore-path .prettierignore --config .prettierrc",
+        "lint": "eslint src",
+        "build:indexes": "node scripts/generateIndexes.js",
+        "build:pmlx": "rimraf dist/pmlx/release && webpack -c ./webpack.config.cjs --mode production",
+        "build:pmlx:debug": "rimraf dist/pmlx/debug && webpack -c ./webpack.config.cjs --mode development",
+        "build:pmlx:types": "rimraf types && tsc --declaration --emitDeclarationOnly --outDir types/",
+        "build:electron": "rimraf dist/electron && electron-builder",
+        "build:electron:debug": "electron ."
+    },
+    "build": {
+        "appId": "com.spideyzac.pmlx",
+        "productName": "PMLX",
+        "directories": {
+            "app": ".",
+            "output": "dist/electron"
+        },
+        "files": [
+            "node_modules/electron-serve/**/*",
+            "patched/electron/main.cjs",
+            "patched/electron/preload.cjs",
+            "core-index.json",
+            "index.html",
+            "patches-index.json",
+            "sw.js",
+            "core/**/*",
+            "dist/pmlx/release/**/*",
+            "lib/**/*",
+            "patches/**/*",
+            "public/**/*"
+        ],
+        "win": {
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "artifactName": "${productName}-Setup-${version}.${ext}"
+        },
+        "mac": {
+            "target": [
+                "dmg",
+                "zip"
+            ],
+            "category": "public.app-category.games"
+        },
+        "linux": {
+            "target": [
+                "AppImage",
+                "deb"
+            ],
+            "category": "Game"
+        }
+    },
+    "keywords": [
+        "mod",
+        "loader",
+        "PolyTrack"
+    ],
+    "author": "SpideyZac",
+    "license": "MIT",
+    "packageManager": "pnpm@10.11.0",
+    "devDependencies": {
+        "@eslint/js": "^9.31.0",
+        "diff": "^8.0.2",
+        "electron": "^37.2.4",
+        "electron-builder": "^26.0.12",
+        "eslint": "^9.31.0",
+        "globals": "^16.3.0",
+        "isbinaryfile": "^5.0.4",
+        "prettier": "3.6.2",
+        "rimraf": "^6.0.1",
+        "ts-loader": "^9.5.2",
+        "typescript": "^5.8.3",
+        "typescript-eslint": "^8.37.0",
+        "webpack-cli": "^6.0.1"
+    },
+    "dependencies": {
+        "electron-serve": "^2.1.1"
+    }
+}

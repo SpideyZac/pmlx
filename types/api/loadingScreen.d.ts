@@ -1,0 +1,13 @@
+export declare function setCurrentTotalParts(parts: number): void;
+export declare function startLoadingScreen(mods: number): void;
+export declare function updateBar(num: number): void;
+export declare function nextPart(): void;
+export declare function currPartStr(): string;
+export declare function startImportMod(url: string, version: string): void;
+export declare function startFetchLatest(): void;
+export declare function finishFetchLatest(version: string): void;
+export declare function startFetchManifest(): void;
+export declare function startFetchModMain(js: string): void;
+export declare function finishImportMod(): void;
+export declare function errorCurrent(): void;
+export declare function endLoadingScreen(): void;
