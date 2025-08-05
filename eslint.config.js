@@ -13,25 +13,23 @@ export default defineConfig([
     // patched-temp maybe?
     {
         files: [
-            "{core,patched}/!(simulation_worker.bundle).{js,mjs,cjs,ts,mts,cts}",
+            "{core,patched}/!(simulation_worker.bundle|electron).{js,mjs,cjs,ts,mts,cts}",
         ],
         languageOptions: { globals: globals.browser },
     },
     {
-        files: [
-            "{core,patched}/simulation_worker.bundle.{js,mjs,cjs,ts,mts,cts}",
-        ],
+        files: ["{core,patched}/simulation_worker.bundle.js"],
         languageOptions: { globals: globals.worker },
     },
     {
-        files: ["{core,patched}/electron/*.{js,mjs,cjs,ts,mts,cts}"],
+        files: ["{core,patched}/electron/*.cjs"],
         languageOptions: { globals: globals.node },
     },
 
     { files: ["sw.js"], languageOptions: { globals: globals.serviceworker } },
 
     {
-        files: ["scripts/*.{js,mjs,cjs,ts,mts,cts}"],
+        files: ["scripts/*.js"],
         languageOptions: { globals: globals.node },
     },
 

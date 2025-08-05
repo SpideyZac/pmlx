@@ -1,1 +1,1 @@
-export { ActiveLoaderRegistry } from "./config";
+export * as registry from "./registry";
