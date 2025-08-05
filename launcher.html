@@ -21,6 +21,23 @@
             const messageElement = document.getElementById("message");
 
             /**
+             * Fetches a file from the indexedDB.
+             * @param {string} filePath - The path of the file to fetch.
+             * @throws {Error} Throws an error if the file is not found.
+             * @returns {Promise<Blob>} A promise that resolves to the file blob.
+             */
+            async function fetchFile(filePath) {
+                return db.get("files", filePath).then((response) => {
+                    if (response && response.blob) {
+                        return response.blob;
+                    } else {
+                        throw new Error(`File not found: ${filePath}`);
+                    }
+                });
+            }
+            window.fetchFile = fetchFile;
+
+            /**
              * Gets the current message from the message element.
              * @returns {string} The current message text.
              */
@@ -112,12 +129,9 @@
              * @returns {{ files: { [filePath: string]: string }, fileTypes: { [filePath: string]: 'bin' | 'text' } }} - An object containing the core files and their types.
              */
             async function loadCoreFiles() {
-                const response = await fetch("./core-index.json");
-                if (!response.ok) {
-                    addErrorMessage("Failed to load core files index.");
-                }
+                const response = await (await fetchFile("core-index.json")).text();
 
-                const coreFilesIndex = await response.json();
+                const coreFilesIndex = JSON.parse(response);
                 const files = {};
                 const fileTypes = {};
 
@@ -137,6 +151,7 @@
                             addErrorMessage(
                                 `Failed to load core file: ${filename}`
                             );
+                            return;
                         }
 
                         if (type === "bin") {
@@ -170,12 +185,9 @@
              * @returns {FilePatch[][]} An array of patch groups, each containing file patches.
              */
             async function loadPatches() {
-                const response = await fetch("./patches-index.json");
-                if (!response.ok) {
-                    addErrorMessage("Failed to load patch index.");
-                }
+                const response = await (await fetchFile("patches-index.json")).text();
 
-                const patchIndex = await response.json();
+                const patchIndex = JSON.parse(response);
                 const patchGroups = [];
 
                 const msgPrefix = getMessage();
@@ -192,14 +204,10 @@
                     const { filename, type } = getFilenameAndType(file);
                     clearMessages();
                     addMessage(`${msgPrefix}Loading patch file: ${filename}`);
-                    const response = await fetch(`./patches/${filename}`);
-                    if (!response.ok) {
-                        addErrorMessage(
-                            `Failed to load patch file: ${filename}`
-                        );
-                    }
+                    console.log(filename, type);
+                    const response = await (await fetchFile(`patches/${filename}`)).text();
 
-                    const patchGroup = await response.json();
+                    const patchGroup = JSON.parse(response);
 
                     patchGroups.push(patchGroup);
                 }
@@ -297,12 +305,18 @@
                 addMessage("Injecting patched index.html");
                 document.documentElement.innerHTML = indexHtml.content;
 
-                const initScript = document.querySelector("script[id='init']");
-                if (initScript) {
-                    const script = document.createElement("script");
-                    script.textContent = initScript.textContent;
-                    document.head.appendChild(script);
-                    initScript.remove();
+                // Reinitialze scripts
+                const scripts = Array.from(document.querySelectorAll("script"));
+                for (const oldScript of scripts) {
+                    const newScript = document.createElement("script");
+                    
+                    for (const attr of oldScript.attributes) {
+                        newScript.setAttribute(attr.name, attr.value);
+                    }
+
+                    newScript.textContent = oldScript.textContent;
+                    document.head.appendChild(newScript);
+                    oldScript.remove();
                 }
                 addMessage("Injection complete.");
             };

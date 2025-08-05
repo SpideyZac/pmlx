@@ -29,14 +29,9 @@
             "node_modules/electron-serve/**/*",
             "patched/electron/main.cjs",
             "patched/electron/preload.cjs",
-            "core-index.json",
             "index.html",
-            "patches-index.json",
-            "sw.js",
             "core/**/*",
-            "dist/pmlx/release/**/*",
             "lib/**/*",
-            "patches/**/*",
             "public/**/*"
         ],
         "win": {
