@@ -129,9 +129,13 @@
              * @returns {{ files: { [filePath: string]: string }, fileTypes: { [filePath: string]: 'bin' | 'text' } }} - An object containing the core files and their types.
              */
             async function loadCoreFiles() {
-                const response = await (await fetchFile("core-index.json")).text();
+                const response = await fetch("./core-index.json");
+                if (!response.ok) {
+                    addErrorMessage("Failed to load core index.");
+                    throw new Error("Failed to load core index.");
+                }
 
-                const coreFilesIndex = JSON.parse(response);
+                const coreFilesIndex = await response.json();
                 const files = {};
                 const fileTypes = {};
 
@@ -185,7 +189,9 @@
              * @returns {FilePatch[][]} An array of patch groups, each containing file patches.
              */
             async function loadPatches() {
-                const response = await (await fetchFile("patches-index.json")).text();
+                const response = await (
+                    await fetchFile("patches-index.json")
+                ).text();
 
                 const patchIndex = JSON.parse(response);
                 const patchGroups = [];
@@ -204,8 +210,9 @@
                     const { filename, type } = getFilenameAndType(file);
                     clearMessages();
                     addMessage(`${msgPrefix}Loading patch file: ${filename}`);
-                    console.log(filename, type);
-                    const response = await (await fetchFile(`patches/${filename}`)).text();
+                    const response = await (
+                        await fetchFile(`patches/${filename}`)
+                    ).text();
 
                     const patchGroup = JSON.parse(response);
 
@@ -309,7 +316,7 @@
                 const scripts = Array.from(document.querySelectorAll("script"));
                 for (const oldScript of scripts) {
                     const newScript = document.createElement("script");
-                    
+
                     for (const attr of oldScript.attributes) {
                         newScript.setAttribute(attr.name, attr.value);
                     }

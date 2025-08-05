@@ -12,6 +12,7 @@
         "format": "prettier --write . --ignore-path .prettierignore --config .prettierrc",
         "lint": "eslint src",
         "build:indexes": "node scripts/generateIndexes.js",
+        "build:pmlx:assets": "node scripts/buildAssets.js",
         "build:pmlx": "rimraf dist/pmlx/release && webpack -c ./webpack.config.cjs --mode production",
         "build:pmlx:debug": "rimraf dist/pmlx/debug && webpack -c ./webpack.config.cjs --mode development",
         "build:pmlx:types": "rimraf types && tsc --declaration --emitDeclarationOnly --outDir types/",
@@ -32,7 +33,9 @@
             "index.html",
             "core/**/*",
             "lib/**/*",
-            "public/**/*"
+            "public/**/*",
+            "core-index.json",
+            "sw.js"
         ],
         "win": {
             "target": [
@@ -74,6 +77,7 @@
         "electron": "^37.2.4",
         "electron-builder": "^26.0.12",
         "eslint": "^9.31.0",
+        "fflate": "^0.8.2",
         "globals": "^16.3.0",
         "isbinaryfile": "^5.0.4",
         "prettier": "3.6.2",

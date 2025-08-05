@@ -4,15 +4,18 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>PMLX Updater</title>
+        <script src="./lib/fflate.min.js"></script>
 
         <!-- Check for updates -->
         <script>
+            const isDev = true; // Set to true for development, false for production
+
             /**
              * IndexedDB helper for simplified access to PMLX data.
              */
             class PMLXDB {
                 constructor() {
-                    this.dbName = 'pmlx';
+                    this.dbName = "pmlx";
                     this.dbVersion = 2;
                     this.db = null;
                 }
@@ -25,17 +28,22 @@
                     if (this.db) return this.db;
 
                     return new Promise((resolve, reject) => {
-                        const request = indexedDB.open(this.dbName, this.dbVersion);
+                        const request = indexedDB.open(
+                            this.dbName,
+                            this.dbVersion
+                        );
 
                         request.onupgradeneeded = (event) => {
                             const db = event.target.result;
 
-                            if (!db.objectStoreNames.contains('version')) {
-                                db.createObjectStore('version');
+                            if (!db.objectStoreNames.contains("version")) {
+                                db.createObjectStore("version");
                             }
 
-                            if (!db.objectStoreNames.contains('files')) {
-                                db.createObjectStore('files', { keyPath: 'id' });
+                            if (!db.objectStoreNames.contains("files")) {
+                                db.createObjectStore("files", {
+                                    keyPath: "id",
+                                });
                             }
                         };
 
@@ -57,7 +65,7 @@
                 async get(storeName, key) {
                     const db = await this.open();
                     return new Promise((resolve) => {
-                        const tx = db.transaction(storeName, 'readonly');
+                        const tx = db.transaction(storeName, "readonly");
                         const store = tx.objectStore(storeName);
                         const request = store.get(key);
                         request.onsuccess = () => resolve(request.result);
@@ -75,9 +83,11 @@
                 async put(storeName, value, key) {
                     const db = await this.open();
                     return new Promise((resolve, reject) => {
-                        const tx = db.transaction(storeName, 'readwrite');
+                        const tx = db.transaction(storeName, "readwrite");
                         const store = tx.objectStore(storeName);
-                        const request = key ? store.put(value, key) : store.put(value);
+                        const request = key
+                            ? store.put(value, key)
+                            : store.put(value);
                         request.onsuccess = () => resolve(true);
                         request.onerror = () => reject(request.error);
                     });
@@ -91,7 +101,7 @@
                 async clear(storeName) {
                     const db = await this.open();
                     return new Promise((resolve, reject) => {
-                        const tx = db.transaction(storeName, 'readwrite');
+                        const tx = db.transaction(storeName, "readwrite");
                         const store = tx.objectStore(storeName);
                         const request = store.clear();
                         request.onsuccess = () => resolve(true);
@@ -101,17 +111,33 @@
             }
 
             const db = new PMLXDB();
-            var isRelease = true;
+            var isRelease = true; // For using the dev version of PMLX (has nothing to do with the urls to fetch from)
             let latestRelease;
 
-            // TODO: maybe add a public-index + lib-index
-            const stuffToDownload = [
-                isRelease ? "release-pmlx.bundle.js" : "debug-pmlx.bundle.js",
-                "core-index.json",
-                "patches-index.json",
-                "sw.js",
-                "launcher.html",
-            ];
+            async function downloadAndExtractZip(url) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(
+                            `Failed to fetch zip: ${response.statusText}`
+                        );
+                    }
+
+                    const arrayBuffer = await response.arrayBuffer();
+                    const zip = fflate.unzipSync(new Uint8Array(arrayBuffer));
+
+                    for (const [filename, content] of Object.entries(zip)) {
+                        const blob = new Blob([content]);
+                        await db.put("files", { id: filename, blob });
+                        console.log(`[PMLX Updater] Stored ${filename}`);
+                    }
+                } catch (error) {
+                    console.error(
+                        "[PMLX Updater] Error downloading or extracting zip:",
+                        error
+                    );
+                }
+            }
 
             /**
              * Gets the latest release version.
@@ -119,13 +145,18 @@
              */
             async function getLatestRelease() {
                 try {
-                    // const response = await fetch("https://api.github.com/repos/SpideyZac/pmlx/releases/latest");
-                    return "some-version9"; // temp stub for latest version
-                    // if (!response.ok) throw new Error("Network error");
-                    // const data = await response.json();
-                    // return data.tag_name;
+                    if (isDev) return "dev-version1";
+                    const response = await fetch(
+                        "https://api.github.com/repos/SpideyZac/pmlx/releases/latest"
+                    );
+                    if (!response.ok) throw new Error("Network error");
+                    const data = await response.json();
+                    return data.tag_name;
                 } catch (error) {
-                    console.error("[PMLX Updater] Error fetching latest release:", error);
+                    console.error(
+                        "[PMLX Updater] Error fetching latest release:",
+                        error
+                    );
                     return null;
                 }
             }
@@ -141,49 +172,19 @@
 
             /**
              * Checks whether an update is needed by comparing current and latest versions.
+             * Also updates the latestRelease variable.
              * @returns {Promise<boolean>} True if an update is required.
              */
             async function needsUpdate() {
                 const latest = await getLatestRelease();
                 const current = await loadVersion();
                 if (!latest) {
-                    latestRelease = "unknown";
+                    latestRelease = current ?? "unknown";
                     return false;
                 }
 
                 latestRelease = latest;
                 return !current || current !== latest;
-            }
-
-            /**
-             * Downloads and stores a file in IndexedDB.
-             * @param {string} file - File name or path.
-             * @returns {Promise<void>}
-             */
-            async function downloadFile(file) {
-                try {
-                    // const baseUrl = "https://github.com/SpideyZac/pmlx/releases/latest/download";
-                    const baseUrl =
-                        "https://raw.githubusercontent.com/SpideyZac/pmlx/refs/heads/master";
-
-                    // temp stuff here
-                    const url = file.endsWith("pmlx.bundle.js")
-                        ? `dist/pmlx/release/pmlx.bundle.js`
-                        // : `${baseUrl}/${file}`;
-                        : file;
-
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        console.error(`[PMLX Updater] Failed to download ${file}`);
-                        return;
-                    }
-
-                    const blob = await response.blob();
-                    await db.put("files", { id: file, blob });
-                    console.log(`[PMLX Updater] Stored ${file}`);
-                } catch (error) {
-                    console.error(`[PMLX Updater] Error downloading ${file}:`, error);
-                }
             }
 
             /**
@@ -199,9 +200,12 @@
 
                 await db.clear("files");
 
-                for (const file of stuffToDownload) {
-                    await downloadFile(file);
-                }
+                console.log("[PMLX Updater] Downloading latest files...");
+                let zipUrl;
+                zipUrl =
+                    "https://github.com/SpideyZac/pmlx/releases/latest/download/pmlx.zip";
+                if (isDev) zipUrl = "./dist/pmlx.zip";
+                await downloadAndExtractZip(zipUrl);
 
                 // Store the new version
                 await db.put("version", latestRelease, "version");
@@ -214,37 +218,21 @@
             (async () => {
                 const updated = await downloadFiles();
 
-                if (updated) {
-                    const patchFile = await db.get("files", "patches-index.json");
-
-                    if (patchFile && patchFile.blob) {
-                        try {
-                            const text = await patchFile.blob.text();
-                            const patches = JSON.parse(text);
-
-                            for (const patch of patches) {
-                                const patchPath = `patches/${patch.split(".").slice(0, -1).join(".")}`;
-                                await downloadFile(patchPath);
-                            }
-                        } catch (err) {
-                            console.error("[PMLX Updater] Error processing patches-index:", err);
-                        }
-                    } else {
-                        console.error("[PMLX Updater] Missing patches-index.json");
-                    }
-                }
-
-                console.log("[PMLX Updater] Update complete, loading launcher...");
+                console.log(
+                    "[PMLX Updater] Update complete, loading launcher..."
+                );
                 const launcherResponse = await db.get("files", "launcher.html");
                 if (launcherResponse && launcherResponse.blob) {
                     const launcherText = await launcherResponse.blob.text();
                     document.documentElement.innerHTML = launcherText;
-                    
+
                     // Reinitialze scripts
-                    const scripts = Array.from(document.querySelectorAll("script"));
+                    const scripts = Array.from(
+                        document.querySelectorAll("script")
+                    );
                     for (const oldScript of scripts) {
                         const newScript = document.createElement("script");
-                        
+
                         for (const attr of oldScript.attributes) {
                             newScript.setAttribute(attr.name, attr.value);
                         }
